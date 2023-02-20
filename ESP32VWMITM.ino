@@ -35,15 +35,27 @@ static const uint32_t QUARTZ_FREQUENCY = 8UL * 1000UL * 1000UL ; // 8 MHz
 //——————————————————————————————————————————————————————————————————————————————
 
 static void receivedFiltered (const CANMessage & inMessage) {
- Serial.println(inMessage.id, HEX);
  if (inMessage.id == 0x0BA) {
     int statuss = ACAN_ESP32::can.tryToSend(inMessage);
   }
   //if modified balance commads
-  if (inMessage.id >= 0x1A55542A && inMessage.id <= 0x1A555438) {
+  if (inMessage.id >= 0x1A55542A && inMessage.id <= 0x1A555439) {
+    Serial.print("Balance command ");
+    Serial.print(inMessage.id, HEX);
+    Serial.print(" New ID: ");
+
     CANMessage frame ;
-    frame.id = inMessage.id - 32;
+
+    if (inMessage.id == 0x1A55542E) {
+      frame.id = 0x1A55541E;//funkyness https://github.com/Tom-evnut/VW-bms/pull/2
+    } else if (inMessage.id == 0x1A55542F) {
+      frame.id = 0x1A55541F;//funkyness https://github.com/Tom-evnut/VW-bms/pull/2
+    } else {
+      frame.id = inMessage.id - 32;
+    }
+
     frame.ext = inMessage.ext;
+    frame.len = inMessage.len;
     frame.data[0] = inMessage.data[0];
     frame.data[1] = inMessage.data[1]; 
     frame.data[2] = inMessage.data[2]; 
@@ -52,7 +64,7 @@ static void receivedFiltered (const CANMessage & inMessage) {
     frame.data[5] = inMessage.data[5]; 
     frame.data[6] = inMessage.data[6]; 
     frame.data[7] = inMessage.data[7]; 
-    ACAN_ESP32::can.tryToSend(inMessage);
+    ACAN_ESP32::can.tryToSend(frame);
   }
 }
 
@@ -88,7 +100,7 @@ void setup () {
   ACAN2515Settings settings (QUARTZ_FREQUENCY, 500UL * 1000UL) ; 
   settings.mRequestedMode = ACAN2515Settings::NormalMode ;
   const ACAN2515Mask rxm0 = standard2515Mask(0x7FF, 0, 0) ; // For filter #0 and #1
-  const ACAN2515Mask rxm1 = extended2515Mask(0x1A5554F0) ; // For filter #2 to #
+  const ACAN2515Mask rxm1 = extended2515Mask(0x1A555400) ; // For filter #2 to #
   const ACAN2515AcceptanceFilter filters [] = {
     {standard2515Filter(0x0BA, 0, 0), receivedFiltered},
     {standard2515Filter(0x0BA, 0, 0), receivedFiltered},
@@ -96,6 +108,8 @@ void setup () {
     {extended2515Filter(0x1A555430), receivedFiltered}
   };
   const uint16_t errorCode = bmsCan.begin (settings, [] { bmsCan.isr () ; }, rxm0, rxm1, filters, 4) ;
+//    const uint16_t errorCode = bmsCan.begin (settings, [] { bmsCan.isr () ; }) ;
+
   if (errorCode == 0) {
     Serial.print ("Bit Rate prescaler: ") ;
     Serial.println (settings.mBitRatePrescaler) ;
@@ -166,6 +180,12 @@ void loop () {
         }
       }
   }
+
+//  if (bmsCan.receive(frame)) {
+//    if (frame.id == 0x0BA) {
+//      int statuss = ACAN_ESP32::can.tryToSend(frame);
+//    }
+//  }
 
   bmsCan.dispatchReceivedMessage () ;
   
