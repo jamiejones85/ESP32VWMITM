@@ -1,0 +1,108 @@
+div.navbar {
+	position: fixed;
+	background: #aaaaaa;
+	top: 0;
+	padding-top: 0.7em;
+	padding-bottom: 1em;
+	padding-right: 1em;
+	z-index: 100;
+	white-space: nowrap;
+}
+input[type=number]{
+    width: 6em;
+}
+
+body {
+	font-family: sans-serif;
+	font-size: 12pt;
+	-webkit-text-size-adjust: none;
+	-moz-text-size-adjust: none;
+	-ms-text-size-adjust: none;
+}
+
+/*label { display: inline-block; width: 12em; }*/
+
+button, input[type=file], input[type=button] {
+	font-size: 100%;
+	padding: 5px 24px;
+	border-radius: 8px;
+	background-color: #e7e7e7;
+	color: black;
+	-webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+}
+
+button:hover,input[type=file]:hover,input[type=button]:hover {
+    background-color: #efefef;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th { background-color:#e5e5e5; }
+
+tr:hover {background-color:#f5f5f5;}
+
+#config label {
+    width: 250px;
+    display: inline-block;
+}
+
+#config > div {
+    padding: 5px 0;
+}
+#config > div > span {
+    display: inline-block;
+    width:180px;
+}
+
+
+.info-block {
+    text-align: center;
+    width: 300px;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    padding-bottom: 30px;
+}
+
+.info-block h3 {
+    color: #666666;
+    font-weight: 100;
+}
+
+.info-block .data {
+    font-size: 4em;
+    font-weight: bold;
+}
+.hidden {
+    display: none;
+}
+
+form div {
+    margin-top: 10px
+}
+label input {
+    margin-left: 20px;
+}
+
+.toaster {
+	padding: 20px;
+	border: solid 2px;
+	border-radius: 10px;
+}
+.toaster-success {
+	border-color: #588a20;
+	background: #f1fff1;
+}
+
+.toaster-fail {
+	border-color: #ff000d;
+	background: #fff1f3;
+}

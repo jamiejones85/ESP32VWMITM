@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>ESP32-CanBridge Settings</title>
+<link href="style.css" rel="stylesheet" type="text/css" />
+<script src="settings.js" type="text/javascript"></script>
+
+</head>
+<body onload="onLoad()">
+<a href="/wifi">Wifi Settings</a>
+<div>
+	<div class="toaster hidden" id="message"></div>
+	<form onsubmit="return false">
+		<h2>Can Bridge Settings</h2>
+		<p>For 2nd pack, offset should be 32, 3rd 64 etc</p>
+		<div>
+			<label>Id Offset<input name="idOffset" type="number" /></label>
+		</div>
+		<p>The GTE Modules with an orange cover over the BMS needs a workaround for the balancing commands</p>
+		<div>
+			<label>is Orange Top GTE Module
+			<select name="isOrangeTopGTE"/>
+				<option value="true">True</option>
+				<option value="false">False</option>
+			</select>
+		</div>
+		<div>
+			<button type='submit' onclick="save()">Save</button>
+		</div>
+	</form>
+</div>
+</body>
+</html>

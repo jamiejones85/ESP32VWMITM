@@ -9,26 +9,27 @@
 //——————————————————————————————————————————————————————————————————————————————
 #include <ACAN_ESP32.h>
 #include <ACAN2515.h>
+#include <EEPROM.h>
+#include "Config.h"
+#include "BridgeWebServer.h"
+#include <WiFi.h>
+#include <SPIFFS.h>
+
 #define LED_BUILTIN 2
+#define EEPROM_SIZE 512
 
 static const byte MCP2515_SCK  = 26 ; // SCK input of MCP2517 
 static const byte MCP2515_MOSI = 19 ; // SDI input of MCP2517  
 static const byte MCP2515_MISO = 18 ; // SDO output of MCP2517 
-
 static const byte MCP2515_CS  = 21 ; // CS input of MCP2515 (adapt to your design) 
 static const byte MCP2515_INT =  23 ; // INT output of MCP2515 (adapt to your design)
-
-//——————————————————————————————————————————————————————————————————————————————
-//  MCP2515 Driver object
-//——————————————————————————————————————————————————————————————————————————————
+static const uint32_t QUARTZ_FREQUENCY = 16UL * 1000UL * 1000UL ; // 8 MHz
 
 ACAN2515 bmsCan (MCP2515_CS, SPI, MCP2515_INT) ;
+EEPROMConfig eepromConfig;
+Config config;
+BridgeWebServer bridgeWebServer(eepromConfig);
 
-//——————————————————————————————————————————————————————————————————————————————
-//  MCP2515 Quartz: adapt to your design
-//——————————————————————————————————————————————————————————————————————————————
-
-static const uint32_t QUARTZ_FREQUENCY = 8UL * 1000UL * 1000UL ; // 8 MHz
 
 //——————————————————————————————————————————————————————————————————————————————
 //   SETUP
@@ -46,12 +47,12 @@ static void receivedFiltered (const CANMessage & inMessage) {
 
     CANMessage frame ;
 
-    if (inMessage.id == 0x1A55542E) {
+    if (eepromConfig.isOrangeTopGTE && inMessage.id == 0x1A55542E) {
       frame.id = 0x1A55541E;//funkyness https://github.com/Tom-evnut/VW-bms/pull/2
-    } else if (inMessage.id == 0x1A55542F) {
+    } else if (eepromConfig.isOrangeTopGTE && inMessage.id == 0x1A55542F) {
       frame.id = 0x1A55541F;//funkyness https://github.com/Tom-evnut/VW-bms/pull/2
     } else {
-      frame.id = inMessage.id - 32;
+      frame.id = inMessage.id - eepromConfig.idOffset;
     }
 
     frame.ext = inMessage.ext;
@@ -74,11 +75,18 @@ void setup () {
   digitalWrite (LED_BUILTIN, HIGH) ;
 //--- Start serial
   Serial.begin (115200) ;
-//--- Wait for serial (blink led at 10 Hz during waiting)
+
   while (!Serial) {
     delay (50) ;
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
   }
+
+  // Initialize SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  
 
   //config on board can
   Serial.println("Initializing CAN...");
@@ -92,11 +100,13 @@ void setup () {
     Serial.print ("Configuration error 0x") ;
     Serial.println (errorCode2, HEX) ;
   }
-//  
-//--- Begin SPI
+
+  EEPROM.begin(EEPROM_SIZE);
+  config.load(eepromConfig);
+
   SPI.begin (MCP2515_SCK, MCP2515_MISO, MCP2515_MOSI) ;
-//--- Configure ACAN2515
   Serial.println ("Configure ACAN2515") ;
+  
   ACAN2515Settings settings (QUARTZ_FREQUENCY, 500UL * 1000UL) ; 
   settings.mRequestedMode = ACAN2515Settings::NormalMode ;
   const ACAN2515Mask rxm0 = standard2515Mask(0x7FF, 0, 0) ; // For filter #0 and #1
@@ -136,7 +146,13 @@ void setup () {
     Serial.println (errorCode, HEX) ;
   }
 
-  
+
+  WiFi.mode(WIFI_AP);
+  // Connect to Wi-Fi
+  WiFi.begin();
+
+  bridgeWebServer.setup(config);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -173,7 +189,7 @@ void loop () {
   //messages from the battery
   if (ACAN_ESP32::can.receive (frame)) {
       if (isBatteryId(frame.id)) {
-        frame.id = frame.id + 32;
+        frame.id = frame.id + eepromConfig.idOffset;
         const bool ok = bmsCan.tryToSend(frame);
         if (!ok) {
           Serial.println("Failed to send message to BMS");  
@@ -187,8 +203,9 @@ void loop () {
 //    }
 //  }
 
-  bmsCan.dispatchReceivedMessage () ;
-  
+  bmsCan.dispatchReceivedMessage() ;
+  bridgeWebServer.execute();
+
 }
 
 //——————————————————————————————————————————————————————————————————————————————
