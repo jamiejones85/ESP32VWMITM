@@ -18,11 +18,11 @@
 #define LED_BUILTIN 2
 #define EEPROM_SIZE 512
 
-static const byte MCP2515_SCK  = 26 ; // SCK input of MCP2517 
-static const byte MCP2515_MOSI = 19 ; // SDI input of MCP2517  
-static const byte MCP2515_MISO = 18 ; // SDO output of MCP2517 
-static const byte MCP2515_CS  = 21 ; // CS input of MCP2515 (adapt to your design) 
-static const byte MCP2515_INT =  23 ; // INT output of MCP2515 (adapt to your design)
+static const byte MCP2515_SCK  = 18 ; // SCK input of MCP2517 
+static const byte MCP2515_MOSI = 23 ; // SDI input of MCP2517  
+static const byte MCP2515_MISO = 19 ; // SDO output of MCP2517 
+static const byte MCP2515_CS  = 5 ; // CS input of MCP2515 (adapt to your design) 
+static const byte MCP2515_INT =  27 ; // INT output of MCP2515 (adapt to your design)
 static const uint32_t QUARTZ_FREQUENCY = 16UL * 1000UL * 1000UL ; // 8 MHz
 
 ACAN2515 bmsCan (MCP2515_CS, SPI, MCP2515_INT) ;
@@ -91,13 +91,13 @@ void setup () {
   //config on board can
   Serial.println("Initializing CAN...");
   ACAN_ESP32_Settings settings2(500 * 1000);
-  settings2.mRxPin = GPIO_NUM_4;
-  settings2.mTxPin = GPIO_NUM_5;
+  settings2.mRxPin = GPIO_NUM_16;
+  settings2.mTxPin = GPIO_NUM_17;
   const uint32_t errorCode2 = ACAN_ESP32::can.begin (settings2) ;
   if (errorCode2 == 0) {
     Serial.println ("Configuration ESP32 OK!");
   }else{
-    Serial.print ("Configuration error 0x") ;
+    Serial.print ("ESP32 Configuration error 0x") ;
     Serial.println (errorCode2, HEX) ;
   }
 
@@ -142,7 +142,7 @@ void setup () {
     Serial.print (settings.samplePointFromBitStart ()) ;
     Serial.println ("%") ;
   }else{
-    Serial.print ("Configuration error 0x") ;
+    Serial.print ("ACAN2515 Configuration error 0x") ;
     Serial.println (errorCode, HEX) ;
   }
 
@@ -188,6 +188,9 @@ void loop () {
 
   //messages from the battery
   if (ACAN_ESP32::can.receive (frame)) {
+      Serial.print("ID");  
+      Serial.println(frame.id, HEX);  
+
       if (isBatteryId(frame.id)) {
         frame.id = frame.id + eepromConfig.idOffset;
         const bool ok = bmsCan.tryToSend(frame);
